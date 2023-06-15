@@ -1,0 +1,6 @@
+{
+  "tasks": {
+    "dev": "deno run --allow-net --allow-env --unstable main.ts",
+    "deploy": "deployctl deploy --project=teg main.ts"
+  }
+}
