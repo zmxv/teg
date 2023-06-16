@@ -26,6 +26,15 @@ export async function getActivePuzzle(): Promise<Puzzle> {
   return ret.value.value;
 }
 
+export async function getPuzzles(limit: number): Promise<Puzzle[]> {
+  const puzzles = kv.list<Puzzle>({ prefix: [puzzleKeyPrefix] }, {limit});
+  const ret: Puzzle[] = [];
+  for await (const puzzle of puzzles) {
+    ret.push(puzzle.value);
+  }
+  return ret;
+}
+
 export function setPuzzle(puzzle: Puzzle): Promise<Deno.KvCommitResult> {
   return kv.set([puzzleKeyPrefix, puzzle.id], puzzle);
 }

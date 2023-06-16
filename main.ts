@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.191.0/http/server.ts";
 import { renderHome } from "./home.ts";
-import { handleSetPuzzle, handleGetPuzzle } from "./admin.ts";
+import { handleSetPuzzle, handleGetPuzzle, handlePutPuzzle } from "./admin.ts";
 import { handleSubmit } from "./submit.ts";
 
 const handler =  async (req: Request): Promise<Response> => {
@@ -17,10 +17,15 @@ const handler =  async (req: Request): Promise<Response> => {
         }
         throw 404;
       case "POST":
-        if (pathname === "/" || pathname === "/submit") {
+        if (pathname === "/") {
           return await handleSubmit(req);
         } else if (pathname === "/admin/puzzle") {
           return await handleSetPuzzle(req);
+        }
+        throw 404;
+      case "PUT":
+        if (pathname === "/admin/puzzle") {
+          return await handlePutPuzzle(req);
         }
         throw 404;
       default:

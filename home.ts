@@ -1,4 +1,4 @@
-import { getActivePuzzle, Entry, Puzzle } from "./db.ts";
+import { getActivePuzzle, getPuzzles, Entry, Puzzle } from "./db.ts";
 
 function esc(text: string): string {
   return text.
@@ -35,34 +35,50 @@ function renderEntry(entry: Entry, i: number, now: number, baseline: number): st
 }
 
 function renderHint(hint: string): string {
-  return esc(hint).replace(/\*/g, "<span class='blank'>&nbsp;</span>");
+  return esc(hint).replace(/\*/g, "<span class='words'>&nbsp;</span>").replace(/_/g, "<span class='word'>&nbsp;</span>");
 }
 
-function renderPuzzle(puzzle: Puzzle, params?: HomeParams): string {
+function renderLeaderboard(ranking: Entry[], now: number, baseline: number, full: boolean): string {
+  return `
+  <table>
+  <thead>
+  <tr>
+  <th class="ra"></th><th class="la">Nickname</th><th class="ra">Similarity</th><th class="la">Submission</th><th class="la">Time</th>
+  </tr>
+  </thead>
+  <tbody>
+  ${ full ?
+      ranking.map((entry, i) => renderEntry(entry, i, now, baseline)).join("\n") :
+      (ranking.slice(0, 3).map((entry, i) => renderEntry(entry, i, now, baseline)).join("\n") +
+      (ranking.length <= 3 ? "" :
+        `<tr><td class="ra">...</td><td class="la">...</td><td class="ra">...</td><td class="la">...</td><td class="la">...</td></tr>` +
+        renderEntry(ranking[ranking.length - 1], ranking.length, now, baseline)
+      )
+      )}
+  </tbody>
+  </table>`;
+}
+
+function renderPuzzle(puzzle: Puzzle, active: boolean, params?: HomeParams): string {
   const now = Date.now();
   const baseline = puzzle.ranking.reduce((a, b) => Math.min(a, b.score), 1) * 0.975;
-  return `<h3>Puzzle #${-puzzle.id}</h3>
-<div>Hint: ${renderHint(puzzle.hint)}</div>
-<div>
-<form action="/" method="post">
-<div><input type="text" name="by" value="${esc(params?.by || "")}" placeholder="Your nickname (2 to 16 alphanumeric characters)" required></div>
-<div><input type="text" name="text" value="${esc(params?.text || "")}" placeholder="Your guess" required></div>
-<button type="submit">Have a guess!</button>
-${ params?.msg ? `<div>${esc(params.msg)}</div>` : "" }
-</form>
-</div>
-<h3>Leaderboard</h3>
-<table>
-<thead>
-<tr>
-<th class="ra"></th><th class="la">Nickname</th><th class="ra">Similarity</th><th class="la">Submission</th><th class="la">Time</th>
-</tr>
-</thead>
-<tbody>
-${ puzzle.ranking.map((entry, i) => renderEntry(entry, i, now, baseline)).join("\n") }
-</tbody>
-</table>
-  `;
+  if (active) {
+    return `<h3>Puzzle #${-puzzle.id} (ongoing)</h3>
+    <div>Hint: ${renderHint(puzzle.hint)}</div>
+    <div>
+    <form action="/" method="post">
+    <div><input type="text" name="by" value="${esc(params?.by || "")}" placeholder="Your nickname (2 to 16 alphanumeric characters)" required></div>
+    <div><input type="text" name="text" value="${esc(params?.text || "")}" placeholder="Your guess" required></div>
+    <button type="submit">Have a guess!</button>
+    ${ params?.msg ? `<div>${esc(params.msg)}</div>` : "" }
+    </form>
+    </div>
+    ${renderLeaderboard(puzzle.ranking, now, baseline, true)}
+    `;
+  }
+  return `<h3>Puzzle #${-puzzle.id} (finished)</h3>
+  <div>Hint: ${renderHint(puzzle.hint)}</div>
+  ${renderLeaderboard(puzzle.ranking, now, baseline, false)}`;
 }
 
 const htmlHeader = `<!doctype html><html lang="en">
@@ -74,12 +90,13 @@ const htmlHeader = `<!doctype html><html lang="en">
 body {font-family: Arial, sans-serif;}
 .la {text-align: left;}
 .ra {text-align: right;}
-table {border-collapse: collapse; border: 1px solid #ccc;}
+table {border-collapse: collapse; border: 1px solid #ccc; margin: 8px 0;}
 td, th {padding:8px; border: 1px solid #ccc;}
 input {width: 400px; max-width: 100%; display:block; box-sizing:border-box;padding: 4px; margin: 4px 0;}
 button {padding: 8px; margin: 4px 0; height: 32px;}
 footer {margin: 16px 0;}
-.blank {width:2em; display:inline-block;background:#000;}
+.word {width:2em; display:inline-block;background:#000;}
+.words {width:5em; display:inline-block;background:#000;}
 </style>
 </head>
 <body>
@@ -96,7 +113,12 @@ export interface HomeParams {
 }
 
 export async function renderHome(params?: HomeParams): Promise<Response> {
-  const html = htmlHeader + renderPuzzle(await getActivePuzzle(), params) + htmlFooter;
+  const puzzles = await getPuzzles(2);
+  let html = htmlHeader;
+  for (let i = 0; i < puzzles.length; i++) {
+    html += renderPuzzle(puzzles[i], !i, params);
+  }
+  html += htmlFooter;
   return new Response(html, {
     headers: {
       "content-type": "text/html",

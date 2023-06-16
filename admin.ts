@@ -3,10 +3,14 @@ import { fetchEmbedding } from "./embedding.ts";
 
 const ADMIN_API_KEY = Deno.env.get("ADMIN_API_KEY") || "";
 
-export async function handleSetPuzzle(req: Request): Promise<Response> {
+function validateAdminAPIKey(req: Request) {
   if (req.headers.get("api-key") !== ADMIN_API_KEY) {
     throw 403;
   }
+}
+
+export async function handleSetPuzzle(req: Request): Promise<Response> {
+  validateAdminAPIKey(req);
 
   const body = await req.json() as Puzzle;
   const id = body.id;
@@ -30,10 +34,21 @@ export async function handleSetPuzzle(req: Request): Promise<Response> {
   });
 }
 
+export async function handlePutPuzzle(req: Request): Promise<Response> {
+  validateAdminAPIKey(req);
+
+  const puzzle = await req.json() as Puzzle;
+  const res = await setPuzzle(puzzle);
+  return new Response(JSON.stringify(res), {
+    headers: {
+      "content-type": "application/json",
+    },
+  });
+}
+
 export async function handleGetPuzzle(req: Request): Promise<Response> {
-  if (req.headers.get("api-key") !== ADMIN_API_KEY) {
-    throw 403;
-  }
+  validateAdminAPIKey(req);
+
   const puzzle = await getActivePuzzle();
   return new Response(JSON.stringify(puzzle), {
     headers: {

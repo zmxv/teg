@@ -48,6 +48,7 @@ export async function handleSubmit(req: Request): Promise<Response> {
         if (prevScore < score) {
           puzzle.ranking[prevEntry] = entry;
           mut = true;
+          msg = `Similarity: ${renderScore(score)} (new personal record).`;
         } else {
           msg = `Similarity: ${renderScore(score)} (not better than your previous score ${renderScore(prevScore)}).`;
         }
