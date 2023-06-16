@@ -1,6 +1,7 @@
 {
   "tasks": {
     "dev": "deno run --allow-net --allow-env --unstable --watch main.ts",
-    "deploy": "deployctl deploy --project=teg main.ts"
+    "deploy": "deployctl deploy --project=teg main.ts",
+    "prod": "deployctl deploy --project=teg --prod main.ts"
   }
 }

@@ -3,7 +3,8 @@ import { renderHome, renderScore } from "./home.ts";
 import { fetchEmbedding, cosineSimilarity } from "./embedding.ts";
 
 const reNickname = /^[a-z0-9]{2,16}$/;
-const inputMaxLen = 256;
+const reInput = /^[A-Za-z0-9!"#$%&'()*+,.\/:;<=>?@\[\] ^_`{|}~-]{1,128}$/;
+const inputMaxLen = 128;
 
 export async function handleSubmit(req: Request): Promise<Response> {
   const form = await req.formData();
@@ -17,6 +18,8 @@ export async function handleSubmit(req: Request): Promise<Response> {
     msg = "Your guess must not be empty.";
   } else if (text.length > inputMaxLen) {
     msg = `Your guess must not exceed ${inputMaxLen} characters.`;
+  } else if (!reInput.test(text)) {
+    msg = "Please use printable ASCII characters (letters, digits, and symbols).";
   } else {
     const puzzle = await getActivePuzzle();
     let prevEntry = -1;

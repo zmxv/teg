@@ -17,7 +17,7 @@ const handler =  async (req: Request): Promise<Response> => {
         }
         throw 404;
       case "POST":
-        if (pathname === "/submit") {
+        if (pathname === "/" || pathname === "/submit") {
           return await handleSubmit(req);
         } else if (pathname === "/admin/puzzle") {
           return await handleSetPuzzle(req);
