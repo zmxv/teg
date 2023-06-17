@@ -1,4 +1,4 @@
-import { getActivePuzzle, getPuzzles, Entry, Puzzle } from "./db.ts";
+import { getPuzzles, Entry, Puzzle } from "./db.ts";
 
 function esc(text: string): string {
   return text.
@@ -38,7 +38,7 @@ function renderHint(hint: string): string {
   return esc(hint).replace(/\*/g, "<span class='words'>&nbsp;</span>").replace(/_/g, "<span class='word'>&nbsp;</span>");
 }
 
-function renderLeaderboard(ranking: Entry[], now: number, baseline: number, full: boolean): string {
+function renderLeaderboard(ranking: Entry[], now: number, baseline: number, limit: number): string {
   return `
   <table>
   <thead>
@@ -47,13 +47,9 @@ function renderLeaderboard(ranking: Entry[], now: number, baseline: number, full
   </tr>
   </thead>
   <tbody>
-  ${ full ?
-      ranking.map((entry, i) => renderEntry(entry, i, now, baseline)).join("\n") :
-      (ranking.slice(0, 3).map((entry, i) => renderEntry(entry, i, now, baseline)).join("\n") +
-      (ranking.length <= 3 ? "" :
-        `<tr><td class="ra">...</td><td class="la">...</td><td class="ra">...</td><td class="la">...</td><td class="la">...</td></tr>` +
-        renderEntry(ranking[ranking.length - 1], ranking.length, now, baseline)
-      )
+  ${ ranking.slice(0, limit).map((entry, i) => renderEntry(entry, i, now, baseline)).join("\n") +
+      (ranking.length <= limit ? "" :
+        `<tr><td class="ra">...</td><td class="la">...</td><td class="ra">...</td><td class="la">...</td><td class="la">...</td></tr>`
       )}
   </tbody>
   </table>`;
@@ -73,12 +69,12 @@ function renderPuzzle(puzzle: Puzzle, active: boolean, params?: HomeParams): str
     ${ params?.msg ? `<div>${esc(params.msg)}</div>` : "" }
     </form>
     </div>
-    ${renderLeaderboard(puzzle.ranking, now, baseline, true)}
+    ${renderLeaderboard(puzzle.ranking, now, baseline, 50)}
     `;
   }
   return `<h3>Puzzle #${-puzzle.id} (finished)</h3>
   <div>Hint: ${renderHint(puzzle.hint)}</div>
-  ${renderLeaderboard(puzzle.ranking, now, baseline, false)}`;
+  ${renderLeaderboard(puzzle.ranking, now, baseline, 3)}`;
 }
 
 const htmlHeader = `<!doctype html><html lang="en">
@@ -102,7 +98,7 @@ footer {margin: 16px 0;}
 <body>
 <h1>TEG: Text Embedding Game</h1>
 <h3>Rules</h3>
-<div>Guess the hidden message. Each guess gets a score up to 1000000 based on the similarity of <a href="https://platform.openai.com/docs/guides/embeddings">text embeddings</a>.</div>
+<div>Guess the hidden message. Each guess is scored by the semantic relatedness (defined by the <a href="https://en.wikipedia.org/wiki/Cosine_similarity">cosine similarity</a> of <a href="https://en.wikipedia.org/wiki/Sentence_embedding">text embeddings</a>).</div>
 `;
 const htmlFooter = `<footer>TEG: a Deno KV <a href="https://github.com/zmxv/teg">hackathon entry</a>.</footer></body></html>`;
 
@@ -113,7 +109,7 @@ export interface HomeParams {
 }
 
 export async function renderHome(params?: HomeParams): Promise<Response> {
-  const puzzles = await getPuzzles(2);
+  const puzzles = await getPuzzles(3);
   let html = htmlHeader;
   for (let i = 0; i < puzzles.length; i++) {
     html += renderPuzzle(puzzles[i], !i, params);

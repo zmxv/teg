@@ -23,8 +23,9 @@ export async function fetchEmbedding(input: string): Promise<TextEmbeddingRespon
     headers: {
       "content-type": "application/json",
       "api-key": EMBEDDING_API_KEY,
+      "authorization": "Bearer " + EMBEDDING_API_KEY,
     },
-    body: JSON.stringify({ input })
+    body: JSON.stringify({ input, model: "text-embedding-ada-002" })
   }).then(res => res.json()) as TextEmbeddingResponse;
   return res;
 }
